@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "881212641417",
+    "project_id": "fanny-771de",
+    "storage_bucket": "fanny-771de.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:881212641417:android:8702ca994daea446cdb658",
+        "android_client_info": {
+          "package_name": "com.example.finny"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "881212641417-75m4kkdee4k289c46jnh7safbdd2g0m5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAHOigDJJUf1R_zje1Nagclgyc531N4Y1c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "881212641417-75m4kkdee4k289c46jnh7safbdd2g0m5.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "881212641417-g7hn61ebdr29u5n5t6p7orpnvm9mgvhb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.finny"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
