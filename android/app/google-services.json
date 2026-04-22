@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "881212641417-q8pv27i5s0sc3ljeoondg60eo7a6n1ka.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.finny",
+            "certificate_hash": "d308decff0e2935e7ab9f81a5f18dc7d782434dd"
+          }
+        },
+        {
           "client_id": "881212641417-75m4kkdee4k289c46jnh7safbdd2g0m5.apps.googleusercontent.com",
           "client_type": 3
         }

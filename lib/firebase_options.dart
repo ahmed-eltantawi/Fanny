@@ -64,6 +64,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '881212641417',
     projectId: 'fanny-771de',
     storageBucket: 'fanny-771de.firebasestorage.app',
+    androidClientId: '881212641417-q8pv27i5s0sc3ljeoondg60eo7a6n1ka.apps.googleusercontent.com',
     iosClientId: '881212641417-g7hn61ebdr29u5n5t6p7orpnvm9mgvhb.apps.googleusercontent.com',
     iosBundleId: 'com.example.finny',
   );
@@ -74,6 +75,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '881212641417',
     projectId: 'fanny-771de',
     storageBucket: 'fanny-771de.firebasestorage.app',
+    androidClientId: '881212641417-q8pv27i5s0sc3ljeoondg60eo7a6n1ka.apps.googleusercontent.com',
     iosClientId: '881212641417-g7hn61ebdr29u5n5t6p7orpnvm9mgvhb.apps.googleusercontent.com',
     iosBundleId: 'com.example.finny',
   );
