@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/utils/adaptive_layout.dart';
 import '../../../../features/auth/presentation/bloc/auth_cubit.dart';
 import '../../../../features/auth/presentation/bloc/auth_state.dart';
 import '../../../../features/requests/domain/entities/request_entity.dart';
@@ -68,23 +69,25 @@ class _RequestsListPageState extends State<RequestsListPage> with SingleTickerPr
           ],
         ),
       ),
-      body: BlocBuilder<RequestsCubit, RequestsState>(
-        builder: (context, state) {
-          if (state is RequestsLoading) return const ShimmerRequestList();
-          if (state is RequestsError) return _ErrorView(message: state.message, onRetry: _load);
-          if (state is RequestsLoaded) {
-            return TabBarView(
-              controller: _tabController,
-              children: [
-                _RequestList(requests: state.requests, l: l),
-                _RequestList(requests: state.requests.where((r) => r.status == RequestStatus.pending).toList(), l: l),
-                _RequestList(requests: state.requests.where((r) => r.status == RequestStatus.inProgress).toList(), l: l),
-                _RequestList(requests: state.requests.where((r) => r.status == RequestStatus.completed).toList(), l: l),
-              ],
-            );
-          }
-          return const ShimmerRequestList();
-        },
+      body: AdaptiveBody(
+        child: BlocBuilder<RequestsCubit, RequestsState>(
+          builder: (context, state) {
+            if (state is RequestsLoading) return const ShimmerRequestList();
+            if (state is RequestsError) return _ErrorView(message: state.message, onRetry: _load);
+            if (state is RequestsLoaded) {
+              return TabBarView(
+                controller: _tabController,
+                children: [
+                  _RequestList(requests: state.requests, l: l),
+                  _RequestList(requests: state.requests.where((r) => r.status == RequestStatus.pending).toList(), l: l),
+                  _RequestList(requests: state.requests.where((r) => r.status == RequestStatus.inProgress).toList(), l: l),
+                  _RequestList(requests: state.requests.where((r) => r.status == RequestStatus.completed).toList(), l: l),
+                ],
+              );
+            }
+            return const ShimmerRequestList();
+          },
+        ),
       ),
     );
   }
@@ -122,17 +125,39 @@ class _RequestList extends StatelessWidget {
         }
       },
       color: AppColors.primary,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(AppSizes.md),
-        itemCount: requests.length,
-        itemBuilder: (context, i) => FadeInUp(
-          delay: Duration(milliseconds: 60 * i),
-          duration: const Duration(milliseconds: 400),
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: AppSizes.sm),
-            child: _RequestCard(request: requests[i], l: l),
-          ),
-        ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final desktop = constraints.maxWidth >= 1000;
+          if (!desktop) {
+            return ListView.builder(
+              padding: const EdgeInsets.all(AppSizes.md),
+              itemCount: requests.length,
+              itemBuilder: (context, i) => FadeInUp(
+                delay: Duration(milliseconds: 60 * i),
+                duration: const Duration(milliseconds: 400),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: AppSizes.sm),
+                  child: _RequestCard(request: requests[i], l: l),
+                ),
+              ),
+            );
+          }
+          return GridView.builder(
+            padding: const EdgeInsets.all(AppSizes.md),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: AppSizes.sm,
+              crossAxisSpacing: AppSizes.sm,
+              childAspectRatio: 1.8,
+            ),
+            itemCount: requests.length,
+            itemBuilder: (context, i) => FadeInUp(
+              delay: Duration(milliseconds: 60 * i),
+              duration: const Duration(milliseconds: 400),
+              child: _RequestCard(request: requests[i], l: l),
+            ),
+          );
+        },
       ),
     );
   }

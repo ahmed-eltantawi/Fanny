@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../localization/locale_cubit.dart';
 import '../network/dio_client.dart';
@@ -18,6 +19,7 @@ import '../../features/requests/presentation/bloc/requests_cubit.dart';
 import '../../features/offers/data/datasources/offers_remote_datasource.dart';
 import '../../features/offers/domain/repositories/offers_repository.dart';
 import '../../features/offers/presentation/bloc/offers_cubit.dart';
+import '../../shared/data/firestore_app_data_service.dart';
 
 final sl = GetIt.instance;
 
@@ -26,6 +28,7 @@ Future<void> initDependencies() async {
   final prefs = await SharedPreferences.getInstance();
   sl.registerLazySingleton(() => prefs);
   sl.registerLazySingleton(() => DioClient());
+  sl.registerLazySingleton(() => FirebaseFirestore.instance);
 
   // ── Core ──────────────────────────────────────────────────────────────────
   sl.registerLazySingleton(() => LocaleCubit());
@@ -33,7 +36,6 @@ Future<void> initDependencies() async {
   // ── Auth ──────────────────────────────────────────────────────────────────
   sl.registerLazySingleton(() => FirebaseAuth.instance);
   sl.registerLazySingleton(() => GoogleSignIn());
-
   sl.registerLazySingleton<AuthRemoteDataSource>(
       () => FirebaseAuthDataSource(sl(), sl(), sl()));
   sl.registerLazySingleton<AuthRepository>(() => AuthRepositoryImpl(sl()));
@@ -43,7 +45,7 @@ Future<void> initDependencies() async {
 
   // ── Requests ──────────────────────────────────────────────────────────────
   sl.registerLazySingleton<RequestsRemoteDataSource>(
-      () => RequestsMockDataSource());
+      () => RequestsFirestoreDataSource(sl()));
   sl.registerLazySingleton<RequestsRepository>(
       () => RequestsRepositoryImpl(sl()));
   // RequestsCubit is shared across technician & admin pages via BlocProvider
@@ -51,7 +53,10 @@ Future<void> initDependencies() async {
 
   // ── Offers ────────────────────────────────────────────────────────────────
   sl.registerLazySingleton<OffersRemoteDataSource>(
-      () => OffersMockDataSource());
+      () => OffersFirestoreDataSource(sl()));
   sl.registerLazySingleton<OffersRepository>(() => OffersRepositoryImpl(sl()));
   sl.registerFactory(() => OffersCubit(sl()));
+
+  // ── App Data Service ──────────────────────────────────────────────────────
+  sl.registerLazySingleton(() => FirestoreAppDataService(sl()));
 }

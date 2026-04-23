@@ -1,5 +1,4 @@
 import 'package:animate_do/animate_do.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +10,7 @@ import '../../../../features/auth/domain/entities/user_entity.dart';
 import '../../../../features/auth/presentation/bloc/auth_cubit.dart';
 import '../../../../features/auth/presentation/bloc/auth_state.dart';
 import '../../../../shared/widgets/custom_button.dart';
+import '../../../../shared/widgets/network_avatar.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -60,8 +60,13 @@ class _ProfileHeader extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.primaryDark, AppColors.primary, AppColors.primaryLight],
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          colors: [
+            AppColors.primaryDark,
+            AppColors.primary,
+            AppColors.primaryLight
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
       ),
       child: SafeArea(
@@ -69,44 +74,65 @@ class _ProfileHeader extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const SizedBox(height: AppSizes.md),
-            FadeInDown(duration: const Duration(milliseconds: 600),
+            FadeInDown(
+              duration: const Duration(milliseconds: 600),
               child: Hero(
-                tag: 'user_avatar',
+                tag: 'profile_user_avatar',
                 child: Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 3),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 16, offset: const Offset(0, 4))],
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4))
+                    ],
                   ),
-                  child: CircleAvatar(
+                  child: NetworkAvatar(
                     radius: 44,
-                    backgroundImage: user?.avatarUrl != null ? CachedNetworkImageProvider(user!.avatarUrl!) : null,
-                    backgroundColor: AppColors.primaryLight,
-                    child: user?.avatarUrl == null
-                        ? const Icon(Icons.person_rounded, color: Colors.white, size: 44)
-                        : null,
+                    imageUrl: user?.avatarUrl,
+                    iconColor: Colors.white,
                   ),
                 ),
               ),
             ),
             const SizedBox(height: AppSizes.sm),
-            FadeInUp(delay: const Duration(milliseconds: 200), duration: const Duration(milliseconds: 500),
-              child: Text(user?.name ?? '---',
-                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, fontFamily: 'Cairo'))),
-            FadeInUp(delay: const Duration(milliseconds: 300), duration: const Duration(milliseconds: 500),
-              child: Text(user?.email ?? '',
-                  style: const TextStyle(color: Colors.white70, fontSize: 13, fontFamily: 'Cairo'))),
+            FadeInUp(
+                delay: const Duration(milliseconds: 200),
+                duration: const Duration(milliseconds: 500),
+                child: Text(user?.name ?? '---',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'Cairo'))),
+            FadeInUp(
+                delay: const Duration(milliseconds: 300),
+                duration: const Duration(milliseconds: 500),
+                child: Text(user?.email ?? '',
+                    style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                        fontFamily: 'Cairo'))),
             const SizedBox(height: AppSizes.xs),
-            FadeInUp(delay: const Duration(milliseconds: 400), duration: const Duration(milliseconds: 500),
+            FadeInUp(
+              delay: const Duration(milliseconds: 400),
+              duration: const Duration(milliseconds: 500),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(AppSizes.radiusFull),
                 ),
                 child: Text(
                   _roleLabel(user?.role, l),
-                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'Cairo'),
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Cairo'),
                 ),
               ),
             ),
@@ -118,10 +144,14 @@ class _ProfileHeader extends StatelessWidget {
 
   String _roleLabel(UserRole? role, AppLocalizations l) {
     switch (role) {
-      case UserRole.customer:   return l.customer;
-      case UserRole.technician: return l.technician;
-      case UserRole.admin:      return l.admin;
-      default:                  return '---';
+      case UserRole.customer:
+        return l.customer;
+      case UserRole.technician:
+        return l.technician;
+      case UserRole.admin:
+        return l.admin;
+      default:
+        return '---';
     }
   }
 }
@@ -149,19 +179,22 @@ class _SettingsSection extends StatelessWidget {
       _SettingItem(
         icon: Icons.notifications_outlined,
         label: l.notifications,
-        trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
+        trailing:
+            const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
         onTap: () {},
       ),
       _SettingItem(
         icon: Icons.help_outline_rounded,
         label: l.help,
-        trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
+        trailing:
+            const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
         onTap: () {},
       ),
       _SettingItem(
         icon: Icons.info_outline_rounded,
         label: l.about,
-        trailing: const Text('1.0.0', style: TextStyle(color: AppColors.textHint, fontFamily: 'Cairo')),
+        trailing: const Text('1.0.0',
+            style: TextStyle(color: AppColors.textHint, fontFamily: 'Cairo')),
         onTap: () {},
       ),
     ];
@@ -198,8 +231,10 @@ class _SettingItem extends StatelessWidget {
   final VoidCallback onTap;
 
   const _SettingItem({
-    required this.icon, required this.label,
-    required this.trailing, required this.onTap,
+    required this.icon,
+    required this.label,
+    required this.trailing,
+    required this.onTap,
   });
 
   @override
@@ -208,16 +243,25 @@ class _SettingItem extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSizes.radiusLG),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSizes.md, vertical: 14),
+        padding:
+            const EdgeInsets.symmetric(horizontal: AppSizes.md, vertical: 14),
         child: Row(
           children: [
             Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(color: AppColors.primarySurface, borderRadius: BorderRadius.circular(AppSizes.radiusSM)),
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                  color: AppColors.primarySurface,
+                  borderRadius: BorderRadius.circular(AppSizes.radiusSM)),
               child: Icon(icon, color: AppColors.primary, size: 20),
             ),
             const SizedBox(width: AppSizes.sm),
-            Expanded(child: Text(label, style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500))),
+            Expanded(
+                child: Text(label,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyLarge
+                        ?.copyWith(fontWeight: FontWeight.w500))),
             trailing,
           ],
         ),
@@ -249,4 +293,3 @@ class _LogoutSection extends StatelessWidget {
     );
   }
 }
-

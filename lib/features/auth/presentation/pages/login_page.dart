@@ -6,8 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_images.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/utils/adaptive_layout.dart';
 import '../../../../features/auth/domain/entities/user_entity.dart';
-import '../../../../features/auth/domain/repositories/auth_repository.dart';
 import '../bloc/auth_cubit.dart';
 import '../bloc/auth_state.dart';
 import '../widgets/role_selector.dart';
@@ -65,238 +65,294 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final isDesktop = AdaptiveLayout.isDesktop(context);
+    final isWideWeb = MediaQuery.of(context).size.width >= 1100;
 
     return BlocListener<AuthCubit, AuthState>(
-      listener: (context, state) {
-        if (state is AuthError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: AppColors.error,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      },
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 52),
-
-                  // ── Logo ──────────────────────────────────────────
-                  FadeInDown(
-                    duration: const Duration(milliseconds: 700),
-                    child: Center(
-                      child: Image.asset(
-                        AppImages.logo,
-                        width: MediaQuery.of(context).size.width * 0.52,
-                        fit: BoxFit.contain,
+        listener: (context, state) {
+          if (state is AuthError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: AppColors.error,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        },
+        child: Scaffold(
+          backgroundColor: Colors.white,
+          body: SafeArea(
+            child: isWideWeb
+                ? Row(
+                    children: [
+                      const Expanded(child: _AuthPromoPanel()),
+                      Expanded(
+                        child: _buildFormContent(context, l, isDesktop),
                       ),
-                    ),
+                    ],
+                  )
+                : _buildFormContent(context, l, isDesktop),
+          ),
+        ));
+  }
+
+  Widget _buildFormContent(
+      BuildContext context, AppLocalizations l, bool isDesktop) {
+    return Center(
+      child: ConstrainedBox(
+        constraints:
+            BoxConstraints(maxWidth: isDesktop ? 520 : double.infinity),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: isDesktop ? 32 : 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 52),
+
+                // ── Logo ──────────────────────────────────────────
+                FadeInDown(
+                  duration: const Duration(milliseconds: 700),
+                  child: Center(
+                    child: Image.asset(AppImages.logo,
+                        width: isDesktop ? 240 : 220,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const Icon(
+                              Icons.home_repair_service_rounded,
+                              size: 80,
+                              color: AppColors.primary,
+                            )),
                   ),
+                ),
 
-                  const SizedBox(height: 28),
+                const SizedBox(height: 28),
 
-                  // ── Welcome text ──────────────────────────────────
-                  FadeInDown(
-                    delay: const Duration(milliseconds: 150),
-                    duration: const Duration(milliseconds: 600),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          l.welcomeBack,
-                          style: const TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF1A1A2E),
-                            fontFamily: 'Cairo',
-                          ),
+                // ── Welcome text ──────────────────────────────────
+                FadeInDown(
+                  delay: const Duration(milliseconds: 150),
+                  duration: const Duration(milliseconds: 600),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        l.welcomeBack,
+                        style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1A1A2E),
+                          fontFamily: 'Cairo',
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          l.loginSubtitle,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF7B8FA1),
-                            fontFamily: 'Cairo',
-                          ),
-                          textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        l.loginSubtitle,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF7B8FA1),
+                          fontFamily: 'Cairo',
                         ),
-                      ],
-                    ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
+                ),
 
-                  const SizedBox(height: 32),
+                const SizedBox(height: 32),
 
-                  // ── Role selector ─────────────────────────────────
-                  FadeInUp(
-                    delay: const Duration(milliseconds: 200),
-                    duration: const Duration(milliseconds: 500),
-                    child: RoleSelector(
-                      selected: _role,
-                      onChanged: (r) => setState(() => _role = r),
-                    ),
+                // ── Role selector ─────────────────────────────────
+                FadeInUp(
+                  delay: const Duration(milliseconds: 200),
+                  duration: const Duration(milliseconds: 500),
+                  child: RoleSelector(
+                    selected: _role,
+                    onChanged: (r) => setState(() => _role = r),
                   ),
+                ),
 
-                  const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
-                  // ── Auth Method Toggle ────────────────────────────
-                  FadeInUp(
-                    delay: const Duration(milliseconds: 240),
-                    duration: const Duration(milliseconds: 500),
-                    child: _AuthMethodSelector(
-                      isEmail: _isEmailAuth,
-                      onChanged: (val) {
-                        setState(() {
-                          _isEmailAuth = val;
-                          _otpSent = false;
-                        });
-                      },
-                    ),
+                // ── Auth Method Toggle ────────────────────────────
+                FadeInUp(
+                  delay: const Duration(milliseconds: 240),
+                  duration: const Duration(milliseconds: 500),
+                  child: _AuthMethodSelector(
+                    isEmail: _isEmailAuth,
+                    onChanged: (val) {
+                      setState(() {
+                        _isEmailAuth = val;
+                        _otpSent = false;
+                      });
+                    },
                   ),
+                ),
 
-                  const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
-                  // ── Input Fields ──────────────────────────────────
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 350),
-                    curve: Curves.easeInOut,
-                    child: _isEmailAuth
-                        ? Column(
-                            children: [
-                              FadeInUp(
-                                delay: const Duration(milliseconds: 280),
-                                duration: const Duration(milliseconds: 500),
-                                child: _TextFieldCard(
-                                  controller: _emailCtrl,
-                                  hint: 'البريد الإلكتروني',
-                                  icon: Icons.email_outlined,
-                                ),
+                // ── Input Fields ──────────────────────────────────
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 350),
+                  curve: Curves.easeInOut,
+                  child: _isEmailAuth
+                      ? Column(
+                          children: [
+                            FadeInUp(
+                              delay: const Duration(milliseconds: 280),
+                              duration: const Duration(milliseconds: 500),
+                              child: _TextFieldCard(
+                                controller: _emailCtrl,
+                                hint: 'البريد الإلكتروني',
+                                icon: Icons.email_outlined,
                               ),
+                            ),
+                            const SizedBox(height: 14),
+                            FadeInUp(
+                              delay: const Duration(milliseconds: 320),
+                              duration: const Duration(milliseconds: 500),
+                              child: _TextFieldCard(
+                                controller: _passwordCtrl,
+                                hint: 'كلمة المرور',
+                                icon: Icons.lock_outline_rounded,
+                                obscureText: true,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Column(
+                          children: [
+                            FadeInUp(
+                              delay: const Duration(milliseconds: 280),
+                              duration: const Duration(milliseconds: 500),
+                              child: _PhoneField(controller: _phoneCtrl),
+                            ),
+                            if (_otpSent) ...[
                               const SizedBox(height: 14),
                               FadeInUp(
-                                delay: const Duration(milliseconds: 320),
-                                duration: const Duration(milliseconds: 500),
-                                child: _TextFieldCard(
-                                  controller: _passwordCtrl,
-                                  hint: 'كلمة المرور',
-                                  icon: Icons.lock_outline_rounded,
-                                  obscureText: true,
-                                ),
+                                duration: const Duration(milliseconds: 400),
+                                child: _OtpField(controller: _otpCtrl),
                               ),
                             ],
-                          )
-                        : Column(
-                            children: [
-                              FadeInUp(
-                                delay: const Duration(milliseconds: 280),
-                                duration: const Duration(milliseconds: 500),
-                                child: _PhoneField(controller: _phoneCtrl),
-                              ),
-                              if (_otpSent) ...[
-                                const SizedBox(height: 14),
-                                FadeInUp(
-                                  duration: const Duration(milliseconds: 400),
-                                  child: _OtpField(controller: _otpCtrl),
-                                ),
-                              ],
-                            ],
-                          ),
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  // ── Login button ──────────────────────────────────
-                  FadeInUp(
-                    delay: const Duration(milliseconds: 360),
-                    duration: const Duration(milliseconds: 500),
-                    child: BlocBuilder<AuthCubit, AuthState>(
-                      builder: (context, state) {
-                        final isLoading = state is AuthLoading;
-                        return _PrimaryButton(
-                          label: _isEmailAuth
-                              ? l.login
-                              : (_otpSent ? l.login : l.sendOtp),
-                          icon: Icons.arrow_back_rounded,
-                          isLoading: isLoading,
-                          onTap: _login,
-                        );
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // ── Register button ───────────────────────────────
-                  FadeInUp(
-                    delay: const Duration(milliseconds: 420),
-                    duration: const Duration(milliseconds: 500),
-                    child: _SecondaryButton(
-                      label: l.createNewAccount,
-                      onTap: () => context.push('/register'),
-                    ),
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  // ── Divider ───────────────────────────────────────
-                  FadeInUp(
-                    delay: const Duration(milliseconds: 480),
-                    duration: const Duration(milliseconds: 400),
-                    child: _OrDivider(label: l.orLoginWith),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // ── Social login ──────────────────────────────────
-                  FadeInUp(
-                    delay: const Duration(milliseconds: 520),
-                    duration: const Duration(milliseconds: 400),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _SocialImageButton(
-                          imagePath: AppImages.googleIcon,
-                          label: 'Google',
-                          onTap: _loginWithGoogle,
+                          ],
                         ),
-                        const SizedBox(width: 16),
-                        _SocialImageButton(
-                          imagePath: AppImages.facebookIcon,
-                          label: 'Facebook',
-                          onTap: () {},
-                        ),
-                      ],
-                    ),
+                ),
+
+                const SizedBox(height: 28),
+
+                // ── Login button ──────────────────────────────────
+                FadeInUp(
+                  delay: const Duration(milliseconds: 360),
+                  duration: const Duration(milliseconds: 500),
+                  child: BlocBuilder<AuthCubit, AuthState>(
+                    builder: (context, state) {
+                      final isLoading = state is AuthLoading;
+                      return _PrimaryButton(
+                        label: _isEmailAuth
+                            ? l.login
+                            : (_otpSent ? l.login : l.sendOtp),
+                        icon: Icons.arrow_back_rounded,
+                        isLoading: isLoading,
+                        onTap: _login,
+                      );
+                    },
                   ),
+                ),
 
-                  const SizedBox(height: 28),
+                const SizedBox(height: 12),
 
-                  // ── Terms ─────────────────────────────────────────
-                  FadeInUp(
-                    delay: const Duration(milliseconds: 560),
-                    duration: const Duration(milliseconds: 400),
-                    child: Text(
-                      l.termsNotice,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFFAAADB7),
-                        fontFamily: 'Cairo',
+                // ── Register button ───────────────────────────────
+                FadeInUp(
+                  delay: const Duration(milliseconds: 420),
+                  duration: const Duration(milliseconds: 500),
+                  child: _SecondaryButton(
+                    label: l.createNewAccount,
+                    onTap: () => context.push('/register'),
+                  ),
+                ),
+
+                const SizedBox(height: 28),
+
+                // ── Divider ───────────────────────────────────────
+                FadeInUp(
+                  delay: const Duration(milliseconds: 480),
+                  duration: const Duration(milliseconds: 400),
+                  child: _OrDivider(label: l.orLoginWith),
+                ),
+
+                const SizedBox(height: 20),
+
+                // ── Social login ──────────────────────────────────
+                FadeInUp(
+                  delay: const Duration(milliseconds: 520),
+                  duration: const Duration(milliseconds: 400),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _SocialImageButton(
+                        imagePath: AppImages.googleIcon,
+                        label: 'Google',
+                        onTap: _loginWithGoogle,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
+                      const SizedBox(width: 16),
+                      _SocialImageButton(
+                        imagePath: AppImages.facebookIcon,
+                        label: 'Facebook',
+                        onTap: () {},
+                      ),
+                    ],
                   ),
+                ),
 
-                  const SizedBox(height: 24),
-                ],
-              ),
+                const SizedBox(height: 28),
+
+                // ── Terms ─────────────────────────────────────────
+                FadeInUp(
+                  delay: const Duration(milliseconds: 560),
+                  duration: const Duration(milliseconds: 400),
+                  child: Text(
+                    l.termsNotice,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFFAAADB7),
+                      fontFamily: 'Cairo',
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AuthPromoPanel extends StatelessWidget {
+  const _AuthPromoPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFF2FBF6), Color(0xFFE9F5FF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(48),
+          child: Image.asset(
+            AppImages.logo,
+            width: 300,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => const Icon(
+              Icons.home_repair_service_rounded,
+              size: 110,
+              color: AppColors.primary,
             ),
           ),
         ),

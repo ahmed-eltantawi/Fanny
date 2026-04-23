@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/errors/failures.dart';
-import '../../../../shared/data/mock_data.dart';
 import '../../domain/entities/request_entity.dart';
 import '../../domain/repositories/requests_repository.dart';
 
@@ -11,27 +11,69 @@ abstract class RequestsRemoteDataSource {
   Future<RequestEntity> updateRequestStatus(String id, RequestStatus status);
 }
 
-/// Mock implementation that reads/writes to [MockData.requests].
-class RequestsMockDataSource implements RequestsRemoteDataSource {
+class RequestsFirestoreDataSource implements RequestsRemoteDataSource {
+  RequestsFirestoreDataSource(this._firestore);
+
+  final FirebaseFirestore _firestore;
+
+  CollectionReference<Map<String, dynamic>> get _requests =>
+      _firestore.collection('requests');
+
   @override
   Future<List<RequestEntity>> getRequests(GetRequestsParams params) async {
-    await Future.delayed(const Duration(milliseconds: 700));
+    Query<Map<String, dynamic>> query = _requests;
+
     if (params.role == 'customer' && params.userId != null) {
-      return MockData.getRequestsForCustomer(params.userId!);
+      query = query.where('customerId', isEqualTo: params.userId);
     }
     if (params.role == 'technician') {
-      return MockData.getAllPendingRequests();
+      query = query.where('status', isEqualTo: 'pending');
     }
-    // Admin sees all
-    return List.from(MockData.requests)
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    query = query.orderBy('createdAt', descending: true);
+    final snap = await query.get();
+    return snap.docs.map(_mapRequest).toList();
   }
 
   @override
   Future<RequestEntity> createRequest(CreateRequestParams params) async {
-    await Future.delayed(const Duration(milliseconds: 1000));
+    final doc = _requests.doc();
+    final payload = <String, dynamic>{
+      'id': doc.id,
+      'customerId': params.customerId,
+      'customerName': params.customerName,
+      'customerAvatar': params.customerAvatar,
+      'title': params.title,
+      'description': params.description,
+      'category': params.category,
+      'categoryNameAr': params.categoryNameAr,
+      'categoryNameEn': params.categoryNameEn,
+      'location': params.location,
+      'status': 'pending',
+      'createdAt': FieldValue.serverTimestamp(),
+      'photoUrls': params.photoUrls,
+      'imageUrl': params.photoUrls.isNotEmpty ? params.photoUrls.first : '',
+      'price': params.budget ?? 0,
+      'budget': params.budget,
+      'offersCount': 0,
+    };
+    await doc.set(payload);
+
+    final customerEmbeddedRequest = <String, dynamic>{
+      ...payload,
+      'createdAt': Timestamp.now(),
+    };
+
+    await _firestore.collection('customers').doc(params.customerId).set({
+      'id': params.customerId,
+      'name': params.customerName,
+      'email': '',
+      'profileImage': params.customerAvatar,
+      'rating': 5.0,
+      'requests': FieldValue.arrayUnion([customerEmbeddedRequest]),
+    }, SetOptions(merge: true));
+
     final request = RequestEntity(
-      id: 'req_${DateTime.now().millisecondsSinceEpoch}',
+      id: doc.id,
       customerId: params.customerId,
       customerName: params.customerName,
       customerAvatar: params.customerAvatar,
@@ -47,18 +89,68 @@ class RequestsMockDataSource implements RequestsRemoteDataSource {
       budget: params.budget,
       offersCount: 0,
     );
-    MockData.requests.add(request);
     return request;
   }
 
   @override
   Future<RequestEntity> updateRequestStatus(String id, RequestStatus status) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    final index = MockData.requests.indexWhere((r) => r.id == id);
-    if (index == -1) throw Exception('Request not found');
-    final updated = MockData.requests[index].copyWith(status: status);
-    MockData.requests[index] = updated;
-    return updated;
+    await _requests.doc(id).update({'status': _statusToString(status)});
+    final updated = await _requests.doc(id).get();
+    if (!updated.exists) throw Exception('Request not found');
+    return _mapRequest(updated);
+  }
+
+  RequestEntity _mapRequest(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data() ?? <String, dynamic>{};
+    final createdAt = data['createdAt'];
+    return RequestEntity(
+      id: doc.id,
+      customerId: (data['customerId'] ?? '') as String,
+      customerName: (data['customerName'] ?? '') as String,
+      customerAvatar: (data['customerAvatar'] ?? '') as String,
+      title: (data['title'] ?? '') as String,
+      description: (data['description'] ?? '') as String,
+      category: (data['category'] ?? 'general_repair') as String,
+      categoryNameAr: (data['categoryNameAr'] ?? '') as String,
+      categoryNameEn: (data['categoryNameEn'] ?? '') as String,
+      location: (data['location'] ?? '') as String,
+      status: _statusFromString(data['status'] as String?),
+      createdAt: createdAt is Timestamp ? createdAt.toDate() : DateTime.now(),
+      photoUrls: ((data['photoUrls'] as List?) ?? const [])
+          .map((e) => e.toString())
+          .toList(),
+      budget: (data['budget'] as num?)?.toDouble(),
+      offersCount: (data['offersCount'] as num?)?.toInt() ?? 0,
+      assignedTechnicianId: data['assignedTechnicianId'] as String?,
+      assignedTechnicianName: data['assignedTechnicianName'] as String?,
+    );
+  }
+
+  RequestStatus _statusFromString(String? value) {
+    switch (value) {
+      case 'inProgress':
+        return RequestStatus.inProgress;
+      case 'completed':
+        return RequestStatus.completed;
+      case 'cancelled':
+        return RequestStatus.cancelled;
+      case 'pending':
+      default:
+        return RequestStatus.pending;
+    }
+  }
+
+  String _statusToString(RequestStatus status) {
+    switch (status) {
+      case RequestStatus.pending:
+        return 'pending';
+      case RequestStatus.inProgress:
+        return 'inProgress';
+      case RequestStatus.completed:
+        return 'completed';
+      case RequestStatus.cancelled:
+        return 'cancelled';
+    }
   }
 }
 

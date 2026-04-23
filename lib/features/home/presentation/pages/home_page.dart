@@ -1,19 +1,22 @@
 import 'package:animate_do/animate_do.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/di/injection.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/utils/adaptive_layout.dart';
 import '../../../../features/auth/domain/entities/user_entity.dart';
 import '../../../../features/auth/presentation/bloc/auth_cubit.dart';
 import '../../../../features/auth/presentation/bloc/auth_state.dart';
 import '../../../../features/home/domain/entities/service_category_entity.dart';
 import '../../../../features/requests/domain/entities/request_entity.dart';
+import '../../../../shared/data/firestore_app_data_service.dart';
 import '../../../../shared/data/mock_data.dart';
 import '../../../../shared/widgets/shimmer_loading.dart';
 import '../../../../shared/widgets/status_badge.dart';
+import '../../../../shared/widgets/network_avatar.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -45,9 +48,11 @@ class _HomePageState extends State<HomePage> {
         slivers: [
           _buildAppBar(context, l, user),
           SliverToBoxAdapter(
-            child: _loading
-                ? const _HomeShimmer()
-                : _HomeContent(user: user, l: l),
+            child: AdaptiveBody(
+              child: _loading
+                  ? const _HomeShimmer()
+                  : _HomeContent(user: user, l: l),
+            ),
           ),
         ],
       ),
@@ -57,7 +62,8 @@ class _HomePageState extends State<HomePage> {
           onPressed: () => context.push('/create-request'),
           icon: const Icon(Icons.add_rounded),
           label: Text(l.createRequest,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: 'Cairo')),
+              style: const TextStyle(
+                  fontWeight: FontWeight.w700, fontFamily: 'Cairo')),
           backgroundColor: AppColors.accent,
           foregroundColor: AppColors.textPrimary,
           elevation: 4,
@@ -66,7 +72,8 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildAppBar(BuildContext context, AppLocalizations l, UserEntity? user) {
+  Widget _buildAppBar(
+      BuildContext context, AppLocalizations l, UserEntity? user) {
     return SliverAppBar(
       expandedHeight: 180,
       floating: false,
@@ -77,19 +84,25 @@ class _HomePageState extends State<HomePage> {
         background: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [AppColors.primaryDark, AppColors.primary, AppColors.primaryLight],
+              colors: [
+                AppColors.primaryDark,
+                AppColors.primary,
+                AppColors.primaryLight
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSizes.lg, vertical: AppSizes.sm),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.lg, vertical: AppSizes.sm),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  FadeInDown(duration: const Duration(milliseconds: 600),
+                  FadeInDown(
+                    duration: const Duration(milliseconds: 600),
                     child: Row(
                       children: [
                         Expanded(
@@ -99,44 +112,56 @@ class _HomePageState extends State<HomePage> {
                               Text(
                                 '${l.hello}${user?.name ?? ''}  👋',
                                 style: const TextStyle(
-                                  color: Colors.white70, fontSize: 14, fontFamily: 'Cairo',
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                  fontFamily: 'Cairo',
                                 ),
                               ),
                               Text(
                                 l.whatDoYouNeed,
                                 style: const TextStyle(
-                                  color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, fontFamily: 'Cairo',
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  fontFamily: 'Cairo',
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        if (user?.avatarUrl != null)
-                          Hero(
-                            tag: 'user_avatar',
-                            child: CircleAvatar(
-                              radius: 24,
-                              backgroundImage: CachedNetworkImageProvider(user!.avatarUrl!),
-                              backgroundColor: AppColors.primaryLight,
-                            ),
+                        Hero(
+                          tag: 'home_user_avatar',
+                          child: NetworkAvatar(
+                            radius: 24,
+                            imageUrl: user?.avatarUrl,
                           ),
+                        ),
                       ],
                     ),
                   ),
                   const SizedBox(height: AppSizes.sm),
-                  FadeInUp(duration: const Duration(milliseconds: 600), delay: const Duration(milliseconds: 200),
+                  FadeInUp(
+                    duration: const Duration(milliseconds: 600),
+                    delay: const Duration(milliseconds: 200),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSizes.md, vertical: AppSizes.sm),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSizes.md, vertical: AppSizes.sm),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(AppSizes.radiusMD),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.search_rounded, color: Colors.white70, size: 20),
+                          const Icon(Icons.search_rounded,
+                              color: Colors.white70, size: 20),
                           const SizedBox(width: AppSizes.sm),
-                          Text(l.searchHint, style: const TextStyle(color: Colors.white60, fontSize: 14, fontFamily: 'Cairo')),
+                          Text(l.searchHint,
+                              style: const TextStyle(
+                                  color: Colors.white60,
+                                  fontSize: 14,
+                                  fontFamily: 'Cairo')),
                         ],
                       ),
                     ),
@@ -159,57 +184,148 @@ class _HomeContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final requests = user != null
-        ? MockData.getRequestsForCustomer(user!.id).take(3).toList()
-        : <RequestEntity>[];
+    return FutureBuilder<(List<RequestEntity>, List<UserEntity>)>(
+      future: _loadData(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const _HomeShimmer();
+        }
+        final requests = snapshot.data?.$1 ?? const <RequestEntity>[];
+        final technicians = snapshot.data?.$2 ?? const <UserEntity>[];
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isDesktop = constraints.maxWidth >= 1024;
+            if (!isDesktop) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: AppSizes.md),
+                  FadeInDown(
+                    duration: const Duration(milliseconds: 600),
+                    child: Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: AppSizes.md),
+                      child: _WalletSummaryCard(l: l),
+                    ),
+                  ),
+                  const SizedBox(height: AppSizes.md),
+                  _SectionHeader(
+                      title: l.categories, actionLabel: l.seeAll, onTap: () {}),
+                  const SizedBox(height: AppSizes.sm),
+                  _CategoryGrid(categories: MockData.categories),
+                  const SizedBox(height: AppSizes.md),
+                  FadeInUp(
+                    duration: const Duration(milliseconds: 600),
+                    delay: const Duration(milliseconds: 100),
+                    child: Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: AppSizes.md),
+                      child:
+                          _TopTechniciansCard(technicians: technicians, l: l),
+                    ),
+                  ),
+                  const SizedBox(height: AppSizes.md),
+                  _SectionHeader(
+                      title: l.recentRequests,
+                      actionLabel: l.seeAll,
+                      onTap: () {}),
+                  const SizedBox(height: AppSizes.sm),
+                  if (requests.isEmpty)
+                    _EmptyRequests(l: l)
+                  else
+                    ...List.generate(
+                      requests.length,
+                      (i) => FadeInUp(
+                        delay: Duration(milliseconds: 100 * i),
+                        duration: const Duration(milliseconds: 500),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSizes.md, vertical: AppSizes.xs),
+                          child: _HomeRequestCard(request: requests[i]),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 100),
+                ],
+              );
+            }
 
-    final technicians = MockData.users
-        .where((u) => u.role == UserRole.technician)
-        .toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: AppSizes.md),
-        // ── Wallet Summary Card ──────────────────────────────────────────
-        FadeInDown(
-          duration: const Duration(milliseconds: 600),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
-            child: _WalletSummaryCard(l: l),
-          ),
-        ),
-        const SizedBox(height: AppSizes.md),
-        _SectionHeader(title: l.categories, actionLabel: l.seeAll, onTap: () {}),
-        const SizedBox(height: AppSizes.sm),
-        _CategoryGrid(categories: MockData.categories),
-        const SizedBox(height: AppSizes.md),
-        // ── Top Technicians Card ─────────────────────────────────────────
-        FadeInUp(
-          duration: const Duration(milliseconds: 600),
-          delay: const Duration(milliseconds: 100),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
-            child: _TopTechniciansCard(technicians: technicians, l: l),
-          ),
-        ),
-        const SizedBox(height: AppSizes.md),
-        _SectionHeader(title: l.recentRequests, actionLabel: l.seeAll, onTap: () {}),
-        const SizedBox(height: AppSizes.sm),
-        if (requests.isEmpty)
-          _EmptyRequests(l: l)
-        else
-          ...List.generate(requests.length, (i) => FadeInUp(
-            delay: Duration(milliseconds: 100 * i),
-            duration: const Duration(milliseconds: 500),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSizes.md, vertical: AppSizes.xs),
-              child: _HomeRequestCard(request: requests[i]),
-            ),
-          )),
-        const SizedBox(height: 100), // FAB clearance
-      ],
+            return Padding(
+              padding: const EdgeInsets.all(AppSizes.md),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 4,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        FadeInDown(
+                          duration: const Duration(milliseconds: 600),
+                          child: _WalletSummaryCard(l: l),
+                        ),
+                        const SizedBox(height: AppSizes.md),
+                        _SectionHeader(
+                            title: l.categories,
+                            actionLabel: l.seeAll,
+                            onTap: () {}),
+                        const SizedBox(height: AppSizes.sm),
+                        _CategoryGrid(categories: MockData.categories),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: AppSizes.md),
+                  Expanded(
+                    flex: 6,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        FadeInUp(
+                          duration: const Duration(milliseconds: 600),
+                          delay: const Duration(milliseconds: 100),
+                          child: _TopTechniciansCard(
+                              technicians: technicians, l: l),
+                        ),
+                        const SizedBox(height: AppSizes.md),
+                        _SectionHeader(
+                            title: l.recentRequests,
+                            actionLabel: l.seeAll,
+                            onTap: () {}),
+                        const SizedBox(height: AppSizes.sm),
+                        if (requests.isEmpty)
+                          _EmptyRequests(l: l)
+                        else
+                          ...List.generate(
+                            requests.length,
+                            (i) => FadeInUp(
+                              delay: Duration(milliseconds: 100 * i),
+                              duration: const Duration(milliseconds: 500),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: AppSizes.xs),
+                                child: _HomeRequestCard(request: requests[i]),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
+  }
+
+  Future<(List<RequestEntity>, List<UserEntity>)> _loadData() async {
+    final service = sl<FirestoreAppDataService>();
+    final recent = user == null
+        ? const <RequestEntity>[]
+        : await service.getCustomerRecentRequests(user!.id);
+    final topTechs = await service.getTopTechnicians();
+    return (recent, topTechs);
   }
 }
 
@@ -217,7 +333,8 @@ class _SectionHeader extends StatelessWidget {
   final String title;
   final String actionLabel;
   final VoidCallback? onTap;
-  const _SectionHeader({required this.title, required this.actionLabel, this.onTap});
+  const _SectionHeader(
+      {required this.title, required this.actionLabel, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -226,7 +343,11 @@ class _SectionHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          Text(title,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700)),
           TextButton(onPressed: onTap, child: Text(actionLabel)),
         ],
       ),
@@ -240,25 +361,45 @@ class _CategoryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 110,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
-        itemCount: categories.length,
-        itemBuilder: (context, i) {
-          final cat = categories[i];
+    final isDesktop = AdaptiveLayout.isDesktop(context);
+    if (!isDesktop) {
+      return SizedBox(
+        height: 110,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
+          itemCount: categories.length,
+          itemBuilder: (context, i) {
+            final cat = categories[i];
+            final color = Color(cat.colorValue);
+            return FadeInLeft(
+              delay: Duration(milliseconds: 60 * i),
+              duration: const Duration(milliseconds: 400),
+              child: Padding(
+                padding: const EdgeInsets.only(right: AppSizes.sm),
+                child: _CategoryChip(category: cat, color: color),
+              ),
+            );
+          },
+        ),
+      );
+    }
+
+    return Wrap(
+      spacing: AppSizes.sm,
+      runSpacing: AppSizes.sm,
+      children: [
+        ...categories.asMap().entries.map((entry) {
+          final i = entry.key;
+          final cat = entry.value;
           final color = Color(cat.colorValue);
           return FadeInLeft(
             delay: Duration(milliseconds: 60 * i),
             duration: const Duration(milliseconds: 400),
-            child: Padding(
-              padding: const EdgeInsets.only(right: AppSizes.sm),
-              child: _CategoryChip(category: cat, color: color),
-            ),
+            child: _CategoryChip(category: cat, color: color),
           );
-        },
-      ),
+        }),
+      ],
     );
   }
 }
@@ -317,8 +458,11 @@ class _CategoryChipState extends State<_CategoryChip> {
               width: 64,
               child: Text(
                 name,
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary, fontFamily: 'Cairo'),
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                    fontFamily: 'Cairo'),
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -345,7 +489,12 @@ class _HomeRequestCard extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSizes.radiusLG),
         border: Border.all(color: AppColors.cardBorder),
-        boxShadow: [BoxShadow(color: AppColors.shadow, blurRadius: 8, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+              color: AppColors.shadow,
+              blurRadius: 8,
+              offset: const Offset(0, 2))
+        ],
       ),
       padding: const EdgeInsets.all(AppSizes.md),
       child: Column(
@@ -354,23 +503,28 @@ class _HomeRequestCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 42, height: 42,
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
                   color: Color(MockData.categories
-                      .firstWhere((c) => c.id == request.category,
-                          orElse: () => MockData.categories.first)
-                      .colorValue)
+                          .firstWhere((c) => c.id == request.category,
+                              orElse: () => MockData.categories.first)
+                          .colorValue)
                       .withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(AppSizes.radiusSM),
                 ),
-                child: const Icon(Icons.build_circle_outlined, color: AppColors.primary, size: 22),
+                child: const Icon(Icons.build_circle_outlined,
+                    color: AppColors.primary, size: 22),
               ),
               const SizedBox(width: AppSizes.sm),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(request.title, style: Theme.of(context).textTheme.titleSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(request.title,
+                        style: Theme.of(context).textTheme.titleSmall,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
                     Text(isAr ? request.categoryNameAr : request.categoryNameEn,
                         style: Theme.of(context).textTheme.bodySmall),
                   ],
@@ -383,7 +537,11 @@ class _HomeRequestCard extends StatelessWidget {
             const SizedBox(height: AppSizes.xs),
             Text(
               '${request.offersCount} ${l.offersCount}',
-              style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'Cairo'),
+              style: TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'Cairo'),
             ),
           ],
         ],
@@ -401,15 +559,18 @@ class _EmptyRequests extends StatelessWidget {
     return FadeIn(
       duration: const Duration(milliseconds: 600),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSizes.lg, vertical: AppSizes.xl),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.lg, vertical: AppSizes.xl),
         child: Column(
           children: [
             const Icon(Icons.inbox_rounded, size: 72, color: AppColors.divider),
             const SizedBox(height: AppSizes.md),
-            Text(l.noRequestsYet, style: Theme.of(context).textTheme.titleSmall),
+            Text(l.noRequestsYet,
+                style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: AppSizes.xs),
             Text(l.createFirstRequest,
-                style: Theme.of(context).textTheme.bodyMedium, textAlign: TextAlign.center),
+                style: Theme.of(context).textTheme.bodyMedium,
+                textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -529,7 +690,8 @@ class _WalletSummaryCard extends StatelessWidget {
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.upload_rounded, color: Colors.white, size: 18),
+                        Icon(Icons.upload_rounded,
+                            color: Colors.white, size: 18),
                         SizedBox(width: 6),
                         Text(
                           'سحب الأرباح',
@@ -586,8 +748,7 @@ class _WalletSummaryCard extends StatelessWidget {
 class _TopTechniciansCard extends StatelessWidget {
   final List<UserEntity> technicians;
   final AppLocalizations l;
-  const _TopTechniciansCard(
-      {required this.technicians, required this.l});
+  const _TopTechniciansCard({required this.technicians, required this.l});
 
   @override
   Widget build(BuildContext context) {
@@ -690,15 +851,11 @@ class _TechnicianRow extends StatelessWidget {
       child: Row(
         children: [
           // Avatar
-          CircleAvatar(
+          NetworkAvatar(
             radius: 26,
+            imageUrl: tech.avatarUrl,
             backgroundColor: AppColors.primaryDark.withValues(alpha: 0.3),
-            backgroundImage: tech.avatarUrl != null
-                ? CachedNetworkImageProvider(tech.avatarUrl!)
-                : null,
-            child: tech.avatarUrl == null
-                ? const Icon(Icons.person, color: Colors.white54, size: 28)
-                : null,
+            iconColor: Colors.white54,
           ),
           const SizedBox(width: 12),
           // Info
@@ -770,12 +927,12 @@ class _TechnicianRow extends StatelessWidget {
 
   String _specialtyLabel(String specialty, bool isAr) {
     const map = {
-      'plumbing':   ('سباكة',    'Plumbing'),
-      'electrical': ('كهرباء',   'Electrical'),
-      'carpentry':  ('نجارة',    'Carpentry'),
-      'painting':   ('دهانات',   'Painting'),
-      'ac_repair':  ('تكييف',    'AC Repair'),
-      'cleaning':   ('تنظيف',    'Cleaning'),
+      'plumbing': ('سباكة', 'Plumbing'),
+      'electrical': ('كهرباء', 'Electrical'),
+      'carpentry': ('نجارة', 'Carpentry'),
+      'painting': ('دهانات', 'Painting'),
+      'ac_repair': ('تكييف', 'AC Repair'),
+      'cleaning': ('تنظيف', 'Cleaning'),
     };
     final entry = map[specialty];
     if (entry == null) return specialty;
