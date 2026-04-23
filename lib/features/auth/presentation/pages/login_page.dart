@@ -458,7 +458,7 @@ class _OtpField extends StatelessWidget {
             keyboardType: TextInputType.number,
             textDirection: TextDirection.ltr,
             textAlign: TextAlign.center,
-            maxLength: 4,
+            maxLength: 6,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             style: const TextStyle(
               fontSize: 22,
@@ -700,6 +700,11 @@ class _SocialImageButtonState extends State<_SocialImageButton> {
                   width: 24,
                   height: 24,
                   fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const Icon(
+                    Icons.image_not_supported_outlined,
+                    size: 22,
+                    color: Color(0xFF7B8FA1),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Text(

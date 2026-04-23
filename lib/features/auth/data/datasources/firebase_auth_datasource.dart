@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,10 +11,12 @@ import 'auth_remote_datasource.dart';
 
 class FirebaseAuthDataSource implements AuthRemoteDataSource {
   static const String _userCacheKeyPrefix = 'auth_user_';
+  static const String _webVerificationMarker = 'web_confirmation_result';
 
   final FirebaseAuth _firebaseAuth;
   final GoogleSignIn _googleSignIn;
   final SharedPreferences _prefs;
+  ConfirmationResult? _webConfirmationResult;
 
   FirebaseAuthDataSource(this._firebaseAuth, this._googleSignIn, this._prefs);
 
@@ -74,10 +77,18 @@ class FirebaseAuthDataSource implements AuthRemoteDataSource {
 
   @override
   Future<String> sendPhoneOtp(String phoneNumber) async {
+    final normalizedPhone = _normalizePhoneNumber(phoneNumber);
+
+    if (kIsWeb) {
+      _webConfirmationResult =
+          await _firebaseAuth.signInWithPhoneNumber(normalizedPhone);
+      return _webVerificationMarker;
+    }
+
     final completer = Completer<String>();
 
     await _firebaseAuth.verifyPhoneNumber(
-      phoneNumber: phoneNumber,
+      phoneNumber: normalizedPhone,
       verificationCompleted: (PhoneAuthCredential credential) async {
         // Auto-resolution (mostly Android).
         // Since we split sending and verifying, this might auto-verify without user input.
@@ -104,15 +115,29 @@ class FirebaseAuthDataSource implements AuthRemoteDataSource {
   @override
   Future<UserEntity> verifyPhoneOtp(
       String verificationId, String otp, UserRole role) async {
-    // If it was auto-verified, the verificationId might be 'auto_verified_...'
-    // For normal flow:
+    if (kIsWeb) {
+      final confirmation = _webConfirmationResult;
+      if (verificationId != _webVerificationMarker || confirmation == null) {
+        throw Exception('Phone verification session expired. Please retry.');
+      }
+
+      final userCredential = await confirmation.confirm(otp);
+      if (userCredential.user == null) {
+        throw Exception('Phone verification failed');
+      }
+      final user = await _buildSessionUser(userCredential.user!, role);
+      await _persistUser(user);
+      return user;
+    }
+
     PhoneAuthCredential credential = PhoneAuthProvider.credential(
       verificationId: verificationId,
       smsCode: otp,
     );
     final userCredential = await _firebaseAuth.signInWithCredential(credential);
-    if (userCredential.user == null)
+    if (userCredential.user == null) {
       throw Exception('Phone verification failed');
+    }
     final user = await _buildSessionUser(userCredential.user!, role);
     await _persistUser(user);
     return user;
@@ -130,8 +155,23 @@ class FirebaseAuthDataSource implements AuthRemoteDataSource {
 
   @override
   Future<void> logout() async {
-    await _googleSignIn.signOut();
+    // Ensure we always sign out Firebase even if Google session is absent/fails.
+    try {
+      await _googleSignIn.disconnect();
+    } catch (_) {}
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {}
+
     await _firebaseAuth.signOut();
+
+    final keysToRemove = _prefs
+        .getKeys()
+        .where((key) => key.startsWith(_userCacheKeyPrefix))
+        .toList();
+    for (final key in keysToRemove) {
+      await _prefs.remove(key);
+    }
   }
 
   Future<UserModel> _buildSessionUser(User user, UserRole role) async {
@@ -182,5 +222,23 @@ class FirebaseAuthDataSource implements AuthRemoteDataSource {
   Future<void> _persistUser(UserEntity user) async {
     final encoded = jsonEncode(UserModel.fromEntity(user).toJson());
     await _prefs.setString('$_userCacheKeyPrefix${user.id}', encoded);
+  }
+
+  String _normalizePhoneNumber(String input) {
+    var value = input.trim().replaceAll(RegExp(r'[^\d+]'), '');
+
+    if (value.startsWith('00')) {
+      value = '+${value.substring(2)}';
+    }
+
+    if (value.startsWith('+')) {
+      return value;
+    }
+
+    if (value.startsWith('0')) {
+      value = value.substring(1);
+    }
+
+    return '+20$value';
   }
 }

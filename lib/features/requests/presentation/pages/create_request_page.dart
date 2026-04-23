@@ -35,12 +35,27 @@ class _CreateRequestPageState extends State<CreateRequestPage> {
   final _picker = ImagePicker();
 
   @override
+  void initState() {
+    super.initState();
+    _titleCtrl.addListener(_onFormChanged);
+    _descCtrl.addListener(_onFormChanged);
+    _locationCtrl.addListener(_onFormChanged);
+  }
+
+  @override
   void dispose() {
+    _titleCtrl.removeListener(_onFormChanged);
+    _descCtrl.removeListener(_onFormChanged);
+    _locationCtrl.removeListener(_onFormChanged);
     _titleCtrl.dispose();
     _descCtrl.dispose();
     _locationCtrl.dispose();
     _budgetCtrl.dispose();
     super.dispose();
+  }
+
+  void _onFormChanged() {
+    if (mounted) setState(() {});
   }
 
   void _nextStep() => setState(() => _step++);
