@@ -20,8 +20,23 @@
     <string>$(FLUTTER_BUILD_NAME)</string>
     <key>CFBundleSignature</key>
     <string>????</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+      <dict>
+        <key>CFBundleTypeRole</key>
+        <string>Editor</string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>com.googleusercontent.apps.881212641417-g7hn61ebdr29u5n5t6p7orpnvm9mgvhb</string>
+        </array>
+      </dict>
+    </array>
     <key>CFBundleVersion</key>
     <string>$(FLUTTER_BUILD_NUMBER)</string>
+    <key>GIDClientID</key>
+    <string>881212641417-g7hn61ebdr29u5n5t6p7orpnvm9mgvhb.apps.googleusercontent.com</string>
+    <key>GIDServerClientID</key>
+    <string>881212641417-75m4kkdee4k289c46jnh7safbdd2g0m5.apps.googleusercontent.com</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>UILaunchStoryboardName</key>
