@@ -25,7 +25,6 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # 🔥 أهم خطوة (حل مشكلة Firebase / Pods)
       - name: Fix iOS deployment target for Pods
         run: |
           sed -i '' 's/platform :ios, .*/platform :ios, "15.0"/g' ios/Podfile
@@ -38,3 +37,10 @@ jobs:
 
       - name: Build iOS (no signing)
         run: flutter build ios --release --no-codesign
+
+      # 🔥 الجزء المهم (تحميل النسخة)
+      - name: Upload iOS build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build
+          path: build/ios/iphoneos/Runner.app
